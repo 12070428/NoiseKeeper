@@ -1,0 +1,23 @@
+# NoiseKeeper 設定（変更後は再起動）
+
+[general]
+output_dir = "data"       # 保存先
+min_free_disk_gb = 5.0    # 空き容量がこれ未満なら音声を保存しない
+report_days = 14          # レポートの日数
+prevent_sleep = true      # スリープ抑止
+
+[hotkeys]
+manual_save = "F9"        # 手動保存（F1〜F24）
+
+[noise]
+pre_secs = 5              # さかのぼる秒数
+post_secs = 8             # 音がやんだ後に録る秒数
+max_clip_secs = 60        # 1ファイルの最大秒数
+margin_db = 12.0          # 環境音より何dB大きければ検知
+min_level_db = -10.0      # これ未満の音は無視（dBFS）
+min_duration_ms = 300     # この時間続いたら検知
+impact_margin_db = 20.0   # 環境音よりこのdB以上大きければ短くても検知
+band_low_hz = 40.0        # 判定する帯域の下限
+band_high_hz = 8000.0     # 判定する帯域の上限
+max_clips_per_day = 500   # 自動保存の1日あたり上限
+

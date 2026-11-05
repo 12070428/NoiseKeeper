@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>NoiseKeeper レポート</title>
+<style>
+body{font:14px "Yu Gothic UI",sans-serif;margin:16px;max-width:1000px}
+table{border-collapse:collapse}th,td{border:1px solid #bbb;padding:3px 10px;text-align:left}
+audio{height:28px;width:220px;vertical-align:middle}svg{display:block;width:100%;border:1px solid #bbb;margin:10px 0}
+</style></head><body>
+<h3>NoiseKeeper レポート</h3>
+日付 <select id="pick"></select> 種類 <select id="cls"></select>
+<span id="sum"></span>
+<div id="chart"></div><div id="list"></div>
+<script>
+const DATA=/*__DATA__*/null;
+const CL={low:"低い音",speech:"話し声",impact:"突発音",continuous:"持続音",other:"その他",manual:"手動",continued:"続き"};
+const COL={low:"#c80",speech:"#d40",impact:"#080",continuous:"#60c",other:"#888",manual:"#c00"};
+const $=s=>document.querySelector(s),ms=s=>new Date(s).getTime();
+const evs=DATA.events.filter(e=>e.class!="continued");
+const days=[...new Set([...evs.map(e=>e.t),...DATA.minutes.map(m=>m[0]),...DATA.starts].map(t=>t.slice(0,10)))].sort().reverse();
+$("#pick").innerHTML=days.map(d=>`<option>${d}</option>`).join("");
+function chart(d,list){const mins=DATA.minutes.filter(m=>m[0].startsWith(d)),W=1000,H=120,ts=[...mins.map(m=>ms(m[0])),...list.map(e=>ms(e.t)),...DATA.starts.filter(t=>t.startsWith(d)).map(ms)],a=Math.min(...ts),last=Math.max(...ts)+6e4,opened=ms(DATA.generated),b=Math.max(d==DATA.generated.slice(0,10)?opened:Math.min(last,ms(d+"T00:00:00")+864e5),a+1e3),X=t=>70+(t-a)/(b-a)*(W-80),Y=v=>10+(0-v)/90*H,kinds=Object.keys(COL).filter(c=>list.some(e=>e.class==c));let g="",p="",prev=0;
+ for(const v of [0,-30,-60,-90])g+=`<line x1="70" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ddd"/><text x="30" y="${Y(v)+4}" font-size="11">${v}</text>`;
+ mins.forEach(m=>{const t=ms(m[0]);p+=(!prev||t-prev>12e4?"M":"L")+X(t+3e4).toFixed(1)+" "+Y(m[1]).toFixed(1);prev=t});g+=`<path d="${p}" fill="none" stroke="#06c"/>`;
+ for(let i=0;i<=6;i++){const t=a+(b-a)*i/6,c=new Date(t),p2=n=>String(n).padStart(2,"0");g+=`<text x="${Math.min(X(t),W-50)}" y="${H+24}" font-size="11">${p2(c.getHours())}:${p2(c.getMinutes())}${b-a<36e4?":"+p2(c.getSeconds()):""}</text>`}
+ kinds.forEach((c,i)=>{const y=H+32+i*16;g+=`<text x="0" y="${y+10}" font-size="11">${CL[c]}</text>`;list.filter(e=>e.class==c).forEach(e=>g+=`<rect x="${X(ms(e.t)).toFixed(1)}" y="${y}" width="${Math.max(2,e.secs*1e3/(b-a)*(W-80)).toFixed(1)}" height="11" fill="${COL[c]}"/>`)});
+ return `<svg viewBox="0 0 ${W} ${H+36+kinds.length*16}">${g}</svg>`}
+function render(){const d=$("#pick").value;if(!d){$("#sum").textContent="記録なし";return}
+ const day=evs.filter(e=>e.t.startsWith(d)),cnt={};day.forEach(e=>cnt[e.class]=(cnt[e.class]||0)+1);
+ const sel=$("#cls").value,keep=cnt[sel]?sel:"";
+ $("#cls").innerHTML=`<option value="">すべて ${day.length}</option>`+Object.keys(cnt).map(c=>`<option value="${c}">${CL[c]} ${cnt[c]}</option>`).join("");$("#cls").value=keep;
+ $("#sum").textContent="　保存 "+new Set(day.filter(e=>e.clip).map(e=>e.clip)).size+"件";
+ $("#chart").innerHTML=chart(d,day);
+ const rows=day.filter(e=>!keep||e.class==keep);
+ $("#list").innerHTML=`<table><tr><th>時刻<th>種類<th>秒<th>最大dBFS<th>音声</tr>${rows.map(e=>`<tr><td>${e.t.slice(11)}<td>${CL[e.class]||e.class}<td>${e.secs||""}<td>${e.peak??""}<td>${e.clip?`<audio controls preload="none" src="${encodeURI(e.clip)}${e.offset>0?"#t="+e.offset:""}"></audio>`:""}</tr>`).join("")}</table>`}
+$("#pick").onchange=$("#cls").onchange=render;render();
+</script></body></html>
